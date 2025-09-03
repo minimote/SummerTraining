@@ -127,3 +127,5 @@ void AdjacencyListGraph::print() const {
         std::cout << std::endl;
     }
 }
+constexpr double AlgorithmLibrary::AlgorithmUtils::INF;
+}
