@@ -183,6 +183,185 @@ namespace AlgorithmLibrary
         return true;
     }
 
+    // 查找连通分量的实现
+    std::vector<std::vector<int>> ConnectivityAlgorithms::findConnectedComponents(const Graph &graph)
+    {
+        int n = graph.getVertexCount();
+        std::vector<std::vector<int>> components;
+        std::vector<bool> visited(n, false);
+
+        for (int i = 0; i < n; ++i)
+        {
+            if (!visited[i])
+            {
+                std::vector<int> component;
+                std::queue<int> queue;
+                queue.push(i);
+                visited[i] = true;
+
+                while (!queue.empty())
+                {
+                    int current = queue.front();
+                    queue.pop();
+                    component.push_back(current);
+
+                    for (int neighbor : graph.getNeighbors(current))
+                    {
+                        if (!visited[neighbor])
+                        {
+                            visited[neighbor] = true;
+                            queue.push(neighbor);
+                        }
+                    }
+                }
+
+                components.push_back(component);
+            }
+        }
+
+        return components;
+    }
+
+    // 查找关节点（割点）的实现
+    std::vector<int> ConnectivityAlgorithms::findArticulationPoints(const Graph &graph)
+    {
+        int n = graph.getVertexCount();
+        if (n == 0)
+            return {};
+
+        std::vector<int> disc(n, -1);        // 记录每个节点的发现时间
+        std::vector<int> low(n, -1);         // 能够回溯到的最早祖先的发现时间
+        std::vector<int> parent(n, -1);      // 每个节点的父节点
+        std::vector<bool> ap(n, false);      // 标记是否为关节点
+        std::vector<int> articulationPoints; // 存储所有关节点
+        int time = 0;
+
+        // 从每个未访问的节点开始DFS
+        for (int i = 0; i < n; i++)
+        {
+            if (disc[i] == -1)
+            {
+                dfsForArticulationPoints(graph, i, disc, low, parent, ap, time);
+            }
+        }
+
+        // 收集所有关节点
+        for (int i = 0; i < n; i++)
+        {
+            if (ap[i])
+            {
+                articulationPoints.push_back(i);
+            }
+        }
+
+        return articulationPoints;
+    }
+
+    // 查找桥的实现
+    std::vector<std::pair<int, int>> ConnectivityAlgorithms::findBridges(const Graph &graph)
+    {
+        int n = graph.getVertexCount();
+        if (n == 0)
+            return {};
+
+        std::vector<int> disc(n, -1);             // 记录每个节点的发现时间
+        std::vector<int> low(n, -1);              // 能够回溯到的最早祖先的发现时间
+        std::vector<int> parent(n, -1);           // 每个节点的父节点
+        std::vector<std::pair<int, int>> bridges; // 存储所有桥
+        int time = 0;
+
+        // 从每个未访问的节点开始DFS
+        for (int i = 0; i < n; i++)
+        {
+            if (disc[i] == -1)
+            {
+                dfsForBridges(graph, i, disc, low, parent, bridges, time);
+            }
+        }
+
+        return bridges;
+    }
+
+    // 关节点DFS辅助函数实现
+    void ConnectivityAlgorithms::dfsForArticulationPoints(const Graph &graph, int vertex,
+                                                          std::vector<int> &disc, std::vector<int> &low,
+                                                          std::vector<int> &parent, std::vector<bool> &ap,
+                                                          int &time)
+    {
+        // 初始化当前节点
+        disc[vertex] = low[vertex] = ++time;
+        int children = 0;
+
+        // 遍历当前节点的所有邻居
+        std::vector<int> neighbors = graph.getNeighbors(vertex);
+        for (int neighbor : neighbors)
+        {
+            // 如果邻居未被访问过
+            if (disc[neighbor] == -1)
+            {
+                children++;
+                parent[neighbor] = vertex;
+                dfsForArticulationPoints(graph, neighbor, disc, low, parent, ap, time);
+
+                // 更新当前节点的low值
+                low[vertex] = std::min(low[vertex], low[neighbor]);
+
+                // 检查是否为关节点
+                // 条件1：如果当前节点是根节点且有多个子节点
+                // 条件2：如果当前节点不是根节点，且存在子节点的low值大于等于当前节点的disc值
+                if ((parent[vertex] == -1 && children > 1) ||
+                    (parent[vertex] != -1 && low[neighbor] >= disc[vertex]))
+                {
+                    ap[vertex] = true;
+                }
+            }
+            // 如果邻居已被访问且不是当前节点的父节点
+            else if (neighbor != parent[vertex])
+            {
+                // 更新当前节点的low值
+                low[vertex] = std::min(low[vertex], disc[neighbor]);
+            }
+        }
+    }
+
+    // 桥DFS辅助函数实现
+    void ConnectivityAlgorithms::dfsForBridges(const Graph &graph, int vertex,
+                                               std::vector<int> &disc, std::vector<int> &low,
+                                               std::vector<int> &parent,
+                                               std::vector<std::pair<int, int>> &bridges,
+                                               int &time)
+    {
+        // 初始化当前节点
+        disc[vertex] = low[vertex] = ++time;
+
+        // 遍历当前节点的所有邻居
+        std::vector<int> neighbors = graph.getNeighbors(vertex);
+        for (int neighbor : neighbors)
+        {
+            // 如果邻居未被访问过
+            if (disc[neighbor] == -1)
+            {
+                parent[neighbor] = vertex;
+                dfsForBridges(graph, neighbor, disc, low, parent, bridges, time);
+
+                // 更新当前节点的low值
+                low[vertex] = std::min(low[vertex], low[neighbor]);
+
+                // 如果邻居的low值大于当前节点的disc值，则这条边是桥
+                if (low[neighbor] > disc[vertex])
+                {
+                    bridges.push_back(std::make_pair(vertex, neighbor));
+                }
+            }
+            // 如果邻居已被访问且不是当前节点的父节点
+            else if (neighbor != parent[vertex])
+            {
+                // 更新当前节点的low值
+                low[vertex] = std::min(low[vertex], disc[neighbor]);
+            }
+        }
+    }
+
     void ConnectivityAlgorithms::dfsForConnectivity(const Graph &graph, int vertex,
                                                     std::vector<bool> &visited)
     {
