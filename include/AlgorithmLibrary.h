@@ -109,6 +109,35 @@ private:
                             std::vector<std::pair<int, int>>& bridges, int& time);
 };
 
+
+// 欧拉算法
+class EulerianAlgorithms {
+public:
+    // 判断图是否有欧拉回路
+    static bool hasEulerianCircuit(const Graph& graph);
+    
+    // 判断图是否有欧拉路径
+    static bool hasEulerianPath(const Graph& graph);
+    
+    // 查找欧拉回路
+    static std::vector<int> findEulerianCircuit(const Graph& graph);
+    
+    // 查找欧拉路径
+    static std::vector<int> findEulerianPath(const Graph& graph);
+
+private:
+    // 深度优先遍历辅助函数
+    static void dfsEulerian(const Graph& graph, int vertex, std::vector<std::vector<bool>>& visitedEdges, 
+                           std::vector<int>& circuit, std::vector<int>& currentPath);
+    
+    // 获取顶点度数
+    static int getDegree(const Graph& graph, int vertex);
+    
+    // 获取顶点入度和出度(有向图)
+    static std::pair<int, int> getInDegreeAndOutDegree(const Graph& graph, int vertex);
+};
+
+
 // 路径算法类
 class PathAlgorithms {
 public:
