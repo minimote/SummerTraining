@@ -84,16 +84,16 @@ public:
 // 连通性算法类
 class ConnectivityAlgorithms {
 public:
-    // 检查图是否连通
+    // 检查图是否连通-高炜良 
     static bool isConnected(const Graph& graph);
     
-    // 查找连通分量
+    // 查找连通分量-高炜良 
     static std::vector<std::vector<int>> findConnectedComponents(const Graph& graph);
     
-    // 查找关节点（割点）
+    // 查找关节点（割点）-高炜良 
     static std::vector<int> findArticulationPoints(const Graph& graph);
     
-    // 查找桥
+    // 查找桥-高炜良 
     static std::vector<std::pair<int, int>> findBridges(const Graph& graph);
     
 private:
@@ -112,26 +112,26 @@ private:
 // 路径算法类
 class PathAlgorithms {
 public:
-    // Dijkstra算法 - 单源最短路径
+    // Dijkstra算法 - 单源最短路径-赵健 
     static std::vector<double> dijkstra(const Graph& graph, int source);
     
-    // Bellman-Ford算法 - 处理负权边
+    // Bellman-Ford算法 - 处理负权边-赵健 
     static std::vector<double> bellmanFord(const Graph& graph, int source);
     
-    // Floyd-Warshall算法 - 所有节点对最短路径
+    // Floyd-Warshall算法 - 所有节点对最短路径-安钧杰 
     static std::vector<std::vector<double>> floydWarshall(const Graph& graph);
     
     // A*算法 - 启发式搜索
     static std::vector<int> aStar(const Graph& graph, int start, int goal,
                                  double (*heuristic)(int, int));
     
-    // 深度优先搜索路径
+    // 深度优先搜索路径-安钧杰 
     static std::vector<int> dfsPath(const Graph& graph, int start, int goal);
     
-    // 广度优先搜索路径
+    // 广度优先搜索路径-安钧杰 
     static std::vector<int> bfsPath(const Graph& graph, int start, int goal);
     
-    // 重建路径的辅助函数
+    // 重建路径的辅助函数-安钧杰 
     static std::vector<int> reconstructPath(const std::vector<int>& prev, int goal);
 };
 

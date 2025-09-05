@@ -2,7 +2,7 @@
 
 namespace AlgorithmLibrary {
 
-// AdjacencyMatrixGraph 实现
+// AdjacencyMatrixGraph 实现-安钧杰 
 AdjacencyMatrixGraph::AdjacencyMatrixGraph(int vertices, bool isDirected)
     : Graph(vertices, isDirected), matrix(vertices, std::vector<double>(vertices, AlgorithmUtils::INF)) {
     for (int i = 0; i < vertices; ++i) {
@@ -64,7 +64,7 @@ void AdjacencyMatrixGraph::print() const {
     }
 }
 
-// AdjacencyListGraph 实现
+// AdjacencyListGraph 实现-安钧杰 
 AdjacencyListGraph::AdjacencyListGraph(int vertices, bool isDirected)
     : Graph(vertices, isDirected), adjList(vertices) {}
 
@@ -129,7 +129,7 @@ void AdjacencyListGraph::print() const {
 }
 
 // ConnectivityAlgorithms 实现
-//连通性的实现 
+ 
 bool ConnectivityAlgorithms::isConnected(const Graph& graph) {
     if (graph.getVertexCount() == 0) return true;
     
@@ -142,10 +142,77 @@ bool ConnectivityAlgorithms::isConnected(const Graph& graph) {
     return true;
 }
 
+std::vector<std::vector<int>> ConnectivityAlgorithms::findConnectedComponents(const Graph& graph) {
+    std::vector<std::vector<int>> components;
+    std::vector<bool> visited(graph.getVertexCount(), false);
+    
+    for (int i = 0; i < graph.getVertexCount(); ++i) {
+        if (!visited[i]) {
+            std::vector<int> component;
+            std::stack<int> stack;
+            stack.push(i);
+            visited[i] = true;
+            
+            while (!stack.empty()) {
+                int vertex = stack.top();
+                stack.pop();
+                component.push_back(vertex);
+                
+                for (int neighbor : graph.getNeighbors(vertex)) {
+                    if (!visited[neighbor]) {
+                        visited[neighbor] = true;
+                        stack.push(neighbor);
+                    }
+                }
+            }
+            
+            components.push_back(component);
+        }
+    }
+    
+    return components;
+}
 
+std::vector<int> ConnectivityAlgorithms::findArticulationPoints(const Graph& graph) {
+    int n = graph.getVertexCount();
+    std::vector<int> disc(n, -1);
+    std::vector<int> low(n, -1);
+    std::vector<int> parent(n, -1);
+    std::vector<bool> ap(n, false);
+    int time = 0;
+    
+    for (int i = 0; i < n; ++i) {
+        if (disc[i] == -1) {
+            dfsForArticulationPoints(graph, i, disc, low, parent, ap, time);
+        }
+    }
+    
+    std::vector<int> result;
+    for (int i = 0; i < n; ++i) {
+        if (ap[i]) {
+            result.push_back(i);
+        }
+    }
+    
+    return result;
+}
 
-
-
+std::vector<std::pair<int, int>> ConnectivityAlgorithms::findBridges(const Graph& graph) {
+    int n = graph.getVertexCount();
+    std::vector<int> disc(n, -1);
+    std::vector<int> low(n, -1);
+    std::vector<int> parent(n, -1);
+    std::vector<std::pair<int, int>> bridges;
+    int time = 0;
+    
+    for (int i = 0; i < n; ++i) {
+        if (disc[i] == -1) {
+            dfsForBridges(graph, i, disc, low, parent, bridges, time);
+        }
+    }
+    
+    return bridges;
+}
 
 void ConnectivityAlgorithms::dfsForConnectivity(const Graph& graph, int vertex, 
                                                std::vector<bool>& visited) {
@@ -157,11 +224,142 @@ void ConnectivityAlgorithms::dfsForConnectivity(const Graph& graph, int vertex,
     }
 }
 
+void ConnectivityAlgorithms::dfsForArticulationPoints(const Graph& graph, int vertex, 
+                                                    std::vector<int>& disc, std::vector<int>& low, 
+                                                    std::vector<int>& parent, std::vector<bool>& ap, 
+                                                    int& time) {
+    disc[vertex] = low[vertex] = ++time;
+    int children = 0;
+    
+    for (int neighbor : graph.getNeighbors(vertex)) {
+        if (disc[neighbor] == -1) {
+            children++;
+            parent[neighbor] = vertex;
+            dfsForArticulationPoints(graph, neighbor, disc, low, parent, ap, time);
+            
+            low[vertex] = std::min(low[vertex], low[neighbor]);
+            
+            // 根节点且有多个子节点
+            if (parent[vertex] == -1 && children > 1) {
+                ap[vertex] = true;
+            }
+            
+            // 非根节点且low[neighbor] >= disc[vertex]
+            if (parent[vertex] != -1 && low[neighbor] >= disc[vertex]) {
+                ap[vertex] = true;
+            }
+        } else if (neighbor != parent[vertex]) {
+            low[vertex] = std::min(low[vertex], disc[neighbor]);
+        }
+    }
+}
 
+void ConnectivityAlgorithms::dfsForBridges(const Graph& graph, int vertex, 
+                                         std::vector<int>& disc, std::vector<int>& low, 
+                                         std::vector<int>& parent, 
+                                         std::vector<std::pair<int, int>>& bridges, 
+                                         int& time) {
+    disc[vertex] = low[vertex] = ++time;
+    
+    for (int neighbor : graph.getNeighbors(vertex)) {
+        if (disc[neighbor] == -1) {
+            parent[neighbor] = vertex;
+            dfsForBridges(graph, neighbor, disc, low, parent, bridges, time);
+            
+            low[vertex] = std::min(low[vertex], low[neighbor]);
+            
+            if (low[neighbor] > disc[vertex]) {
+                bridges.emplace_back(vertex, neighbor);
+            }
+        } else if (neighbor != parent[vertex]) {
+            low[vertex] = std::min(low[vertex], disc[neighbor]);
+        }
+    }
+}
 
 // PathAlgorithms 实现
+std::vector<double> PathAlgorithms::dijkstra(const Graph& graph, int source) {
+    int n = graph.getVertexCount();
+    if (source < 0 || source >= n) {
+        throw AlgorithmException("Invalid source vertex");
+    }
+    
+    std::vector<double> dist(n, AlgorithmUtils::INF);
+    dist[source] = 0;
+    
+    // 使用优先队列（最小堆）
+    using Pair = std::pair<double, int>;
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
+    pq.emplace(0, source);
+    
+    while (!pq.empty()) {
+        double d = pq.top().first;
+        int u = pq.top().second;
+        pq.pop();
+        
+        // 如果找到更短的路径已经处理过，跳过
+        if (d > dist[u]) {
+            continue;
+        }
+        
+        for (int v : graph.getNeighbors(u)) {
+            double weight = graph.getWeight(u, v);
+            if (AlgorithmUtils::definitelyGreaterThan(dist[u] + weight, dist[v])) {
+                continue;
+            }
+            
+            if (AlgorithmUtils::definitelyLessThan(dist[u] + weight, dist[v])) {
+                dist[v] = dist[u] + weight;
+                pq.emplace(dist[v], v);
+            }
+        }
+    }
+    
+    return dist;
+}
 
-//多源最短路径实现(anjunjie) 
+std::vector<double> PathAlgorithms::bellmanFord(const Graph& graph, int source) {
+    int n = graph.getVertexCount();
+    if (source < 0 || source >= n) {
+        throw AlgorithmException("Invalid source vertex");
+    }
+    
+    std::vector<double> dist(n, AlgorithmUtils::INF);
+    dist[source] = 0;
+    
+    // 松弛操作执行V-1次
+    for (int i = 1; i < n; ++i) {
+        for (int u = 0; u < n; ++u) {
+            if (AlgorithmUtils::approximatelyEqual(dist[u], AlgorithmUtils::INF)) {
+                continue;
+            }
+            
+            for (int v : graph.getNeighbors(u)) {
+                double weight = graph.getWeight(u, v);
+                if (AlgorithmUtils::definitelyLessThan(dist[u] + weight, dist[v])) {
+                    dist[v] = dist[u] + weight;
+                }
+            }
+        }
+    }
+    
+    // 检查负权环
+    for (int u = 0; u < n; ++u) {
+        if (AlgorithmUtils::approximatelyEqual(dist[u], AlgorithmUtils::INF)) {
+            continue;
+        }
+        
+        for (int v : graph.getNeighbors(u)) {
+            double weight = graph.getWeight(u, v);
+            if (AlgorithmUtils::definitelyLessThan(dist[u] + weight, dist[v])) {
+                throw AlgorithmException("Graph contains a negative-weight cycle");
+            }
+        }
+    }
+    
+    return dist;
+}
+
 std::vector<std::vector<double>> PathAlgorithms::floydWarshall(const Graph& graph) {
     int n = graph.getVertexCount();
     std::vector<std::vector<double>> dist(n, std::vector<double>(n, AlgorithmUtils::INF));
@@ -192,7 +390,46 @@ std::vector<std::vector<double>> PathAlgorithms::floydWarshall(const Graph& grap
     return dist;
 }
 
-//深度优先算法和广度优先算法的实现 
+std::vector<int> PathAlgorithms::aStar(const Graph& graph, int start, int goal,
+                                      double (*heuristic)(int, int)) {
+    int n = graph.getVertexCount();
+    if (start < 0 || start >= n || goal < 0 || goal >= n) {
+        throw AlgorithmException("Invalid start or goal vertex");
+    }
+    
+    std::vector<double> gScore(n, AlgorithmUtils::INF);
+    std::vector<double> fScore(n, AlgorithmUtils::INF);
+    std::vector<int> cameFrom(n, -1);
+    
+    gScore[start] = 0;
+    fScore[start] = heuristic(start, goal);
+    
+    using Pair = std::pair<double, int>;
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> openSet;
+    openSet.emplace(fScore[start], start);
+    
+    while (!openSet.empty()) {
+        int current = openSet.top().second;
+        openSet.pop();
+        
+        if (current == goal) {
+            return reconstructPath(cameFrom, goal);
+        }
+        
+        for (int neighbor : graph.getNeighbors(current)) {
+            double tentativeGScore = gScore[current] + graph.getWeight(current, neighbor);
+            
+            if (AlgorithmUtils::definitelyLessThan(tentativeGScore, gScore[neighbor])) {
+                cameFrom[neighbor] = current;
+                gScore[neighbor] = tentativeGScore;
+                fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, goal);
+                openSet.emplace(fScore[neighbor], neighbor);
+            }
+        }
+    }
+    
+    return {}; // 没有找到路径
+}
 
 std::vector<int> PathAlgorithms::dfsPath(const Graph& graph, int start, int goal) {
     int n = graph.getVertexCount();
@@ -259,6 +496,7 @@ std::vector<int> PathAlgorithms::bfsPath(const Graph& graph, int start, int goal
     
     return {}; // 没有找到路径
 }
+
 std::vector<int> PathAlgorithms::reconstructPath(const std::vector<int>& prev, int goal) {
     std::vector<int> path;
     int current = goal;
@@ -271,7 +509,6 @@ std::vector<int> PathAlgorithms::reconstructPath(const std::vector<int>& prev, i
     std::reverse(path.begin(), path.end());
     return path;
 }
-
 
 // AlgorithmUtils 实现
 bool AlgorithmUtils::approximatelyEqual(double a, double b, double epsilon) {
